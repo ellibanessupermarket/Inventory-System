@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Store Inventory</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --green-900:#12352A;
+    --green-700:#1F6F4A;
+    --green-600:#278257;
+    --green-100:#E4F0E8;
+    --cream:#FAF8F3;
+    --paper:#FFFFFF;
+    --ink:#23291F;
+    --ink-soft:#5C6459;
+    --line:#E2DFD5;
+    --amber:#E8A33D;
+    --amber-bg:#FCF0DA;
+    --red:#C4453A;
+    --red-bg:#FBE7E4;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Public Sans', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:var(--sans);
+    background:var(--cream);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{min-height:100vh;display:flex;flex-direction:column;}
+
+  /* Header */
+  header{
+    background:var(--green-900);
+    color:#fff;
+    padding:18px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand .mark{
+    width:38px;height:38px;border-radius:8px;background:var(--green-600);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.08);
+  }
+  .brand h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.2px;}
+  .brand .sub{font-size:12px;color:#B9CFC0;margin-top:1px;}
+  .header-right{font-family:var(--mono);font-size:12px;color:#B9CFC0;text-align:right;}
+
+  nav{
+    background:var(--green-700);
+    display:flex;
+    overflow-x:auto;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.08);
+  }
+  nav button{
+    background:none;border:none;color:#DCEBE1;padding:13px 18px;font-family:var(--sans);
+    font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap;
+    border-bottom:3px solid transparent;transition:.15s;
+  }
+  nav button:hover{background:rgba(255,255,255,0.06);}
+  nav button.active{color:#fff;border-bottom:3px solid var(--amber);background:rgba(255,255,255,0.05);}
+
+  main{flex:1;padding:24px;max-width:1180px;width:100%;margin:0 auto;}
+
+  h2.page-title{font-size:20px;margin:0 0 4px 0;font-weight:800;}
+  p.page-desc{color:var(--ink-soft);font-size:13.5px;margin:0 0 20px 0;}
+
+  .grid{display:grid;gap:16px;}
+  .grid.cols-4{grid-template-columns:repeat(4,1fr);}
+  .grid.cols-3{grid-template-columns:repeat(3,1fr);}
+  .grid.cols-2{grid-template-columns:1fr 1fr;}
+  @media(max-width:900px){.grid.cols-4{grid-template-columns:repeat(2,1fr);} .grid.cols-3{grid-template-columns:repeat(2,1fr)} .grid.cols-2{grid-template-columns:1fr;}}
+  @media(max-width:560px){.grid.cols-4{grid-template-columns:1fr;}}
+
+  .card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:18px;
+  }
+  .stat .label{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-soft);font-weight:600;}
+  .stat .value{font-family:var(--mono);font-size:26px;font-weight:600;margin-top:6px;color:var(--green-900);}
+  .stat .value.alert{color:var(--red);}
+  .stat .value.warn{color:#B5761F;}
+
+  .panel{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:20px;}
+  .panel h3{margin:0 0 14px 0;font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .panel h3 .count{background:var(--green-100);color:var(--green-700);font-family:var(--mono);font-size:11.5px;padding:2px 8px;border-radius:20px;font-weight:600;}
+
+  form.row-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:6px;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:11.5px;font-weight:600;color:var(--ink-soft);}
+  .field input, .field select{
+    font-family:var(--sans);font-size:13.5px;padding:9px 10px;border:1px solid var(--line);
+    border-radius:7px;background:#fff;color:var(--ink);min-width:120px;
+  }
+  .field input.mono{font-family:var(--mono);}
+  .field input:focus, .field select:focus{outline:2px solid var(--green-600);outline-offset:1px;border-color:var(--green-600);}
+  .field.grow{flex:1;min-width:180px;}
+  .field.scan input{border-color:var(--green-600);background:var(--green-100);font-weight:600;}
+
+  button.btn{
+    font-family:var(--sans);font-weight:700;font-size:13px;padding:10px 18px;border-radius:7px;
+    border:none;cursor:pointer;transition:.15s;
+  }
+  button.btn.primary{background:var(--green-700);color:#fff;}
+  button.btn.primary:hover{background:var(--green-600);}
+  button.btn.ghost{background:transparent;color:var(--green-700);border:1px solid var(--green-700);}
+  button.btn.ghost:hover{background:var(--green-100);}
+  button.btn.small{padding:6px 12px;font-size:12px;}
+  button.btn.danger{background:transparent;color:var(--red);border:1px solid var(--red-bg);}
+  button.btn.danger:hover{background:var(--red-bg);}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{
+    text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-soft);
+    border-bottom:2px solid var(--line);padding:8px 10px;font-weight:700;white-space:nowrap;
+  }
+  tbody td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  tbody tr:hover{background:var(--green-100);}
+  td.mono, th.mono{font-family:var(--mono);}
+  td.num{text-align:right;font-family:var(--mono);}
+  th.num{text-align:right;}
+
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+  .badge.dept{background:var(--green-100);color:var(--green-700);}
+  .badge.warn{background:var(--amber-bg);color:#8A5C14;}
+  .badge.danger{background:var(--red-bg);color:var(--red);}
+  .badge.ok{background:var(--green-100);color:var(--green-700);}
+
+  .empty{padding:30px 10px;text-align:center;color:var(--ink-soft);font-size:13px;}
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:8px;line-height:1.5;}
+  .hint b{color:var(--ink);}
+
+  .toast{
+    position:fixed;bottom:20px;right:20px;background:var(--green-900);color:#fff;padding:12px 18px;
+    border-radius:8px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.2);
+    opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none;z-index:50;
+  }
+  .toast.show{opacity:1;transform:translateY(0);}
+
+  select#dept-filter, .filter-bar{margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .filter-bar input{flex:1;min-width:160px;}
+
+  .tag-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+  .tag{background:var(--green-100);color:var(--green-700);font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:8px;}
+  .tag button{background:none;border:none;color:var(--green-700);cursor:pointer;font-weight:800;padding:0;font-size:13px;}
+
+  .loading{padding:60px;text-align:center;color:var(--ink-soft);font-size:13px;}
+
+  .dropzone{
+    border:2px dashed var(--line);border-radius:10px;padding:26px 18px;text-align:center;
+    background:var(--cream);cursor:pointer;transition:.15s;
+  }
+  .dropzone:hover, .dropzone.drag{border-color:var(--green-600);background:var(--green-100);}
+  .dropzone .dz-title{font-weight:700;font-size:13.5px;color:var(--ink);}
+  .dropzone .dz-sub{font-size:12px;color:var(--ink-soft);margin-top:4px;}
+  .dropzone input[type=file]{display:none;}
+
+  .import-summary{margin-top:12px;font-size:13px;}
+  .import-summary .ok{color:var(--green-700);font-weight:600;}
+  .import-summary .bad{color:var(--red);font-weight:600;}
+
+  .export-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+  @media(max-width:700px){.export-grid{grid-template-columns:1fr;}}
+  .export-card{border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px;}
+  .export-card h4{margin:0;font-size:13.5px;}
+  .export-card p{margin:0;font-size:12px;color:var(--ink-soft);line-height:1.5;flex:1;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <div class="mark">S</div>
+      <div>
+        <h1>Store Inventory</h1>
+        <div class="sub">Receiving &middot; Stock &middot; Expiration tracking</div>
+      </div>
+    </div>
+    <div class="header-right" id="header-clock"></div>
+  </header>
+  <nav id="tabs"></nav>
+  <main id="main"><div class="loading">Loading inventory data&hellip;</div></main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------------------------------------------------
+   STORAGE KEYS
+   catalog        -> { departments:[], vendors:[], items:{upc:{...}} }
+   receiving-log  -> [ {id, upc, qtyReceived, qtyRemaining, unitCost, dateReceived, expirationDate, vendor, lotNote} ]
+   sales-log      -> [ {id, upc, qty, date} ]
+--------------------------------------------------------- */
+
+const DEFAULT_DEPARTMENTS = [
+  "Produce","Meat & Poultry","Seafood","Deli","Bakery","Dairy","Frozen",
+  "Grocery - Taxable","Grocery - Non-Taxable","Beverages","Health & Beauty","Household","General Merchandise"
+];
+
+const UNIT_TYPES = ["units","lbs","oz","kg","case","gallon","each"];
+
+let state = {
+  catalog: { departments: [...DEFAULT_DEPARTMENTS], vendors: [], items: {} },
+  receiving: [],
+  sales: []
+};
+
+let activeTab = 'dashboard';
+let loaded = false;
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function fmtMoney(n){ return '$' + (Math.round(n*100)/100).toFixed(2); }
+function fmtDate(d){ if(!d) return '—'; const dt = new Date(d+'T00:00:00'); return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function daysUntil(d){ if(!d) return null; const now = new Date(); now.setHours(0,0,0,0); const dt = new Date(d+'T00:00:00'); return Math.round((dt-now)/86400000); }
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ---------------- Storage I/O ---------------- */
+/* Uses localStorage: data is saved in the browser, and persists across
+   refreshes and closing the tab. Note: it's per-browser/per-device — it
+   won't sync between different computers or phones automatically. */
+const STORAGE_PREFIX = 'store-inventory:';
+
+async function loadAll(){
+  try{
+    const c = localStorage.getItem(STORAGE_PREFIX + 'catalog');
+    if(c) state.catalog = JSON.parse(c);
+  }catch(e){ /* no catalog yet, use defaults */ }
+  try{
+    const r = localStorage.getItem(STORAGE_PREFIX + 'receiving-log');
+    if(r) state.receiving = JSON.parse(r);
+  }catch(e){ state.receiving = []; }
+  try{
+    const s = localStorage.getItem(STORAGE_PREFIX + 'sales-log');
+    if(s) state.sales = JSON.parse(s);
+  }catch(e){ state.sales = []; }
+  loaded = true;
+}
+
+async function saveCatalog(){
+  try{ localStorage.setItem(STORAGE_PREFIX + 'catalog', JSON.stringify(state.catalog)); }
+  catch(e){ showToast('Could not save — storage may be full'); }
+}
+async function saveReceiving(){
+  try{ localStorage.setItem(STORAGE_PREFIX + 'receiving-log', JSON.stringify(state.receiving)); }
+  catch(e){ showToast('Could not save — storage may be full'); }
+}
+async function saveSales(){
+  try{ localStorage.setItem(STORAGE_PREFIX + 'sales-log', JSON.stringify(state.sales)); }
+  catch(e){ showToast('Could not save — storage may be full'); }
+}
+
+/* ---------------- Derived data ---------------- */
+function activeLotsForUpc(upc){
+  return state.receiving.filter(l => l.upc === upc && l.qtyRemaining > 0)
+    .sort((a,b)=> (a.expirationDate||'9999').localeCompare(b.expirationDate||'9999'));
+}
+function onHandQty(upc){
+  return state.receiving.filter(l=>l.upc===upc).reduce((s,l)=>s+l.qtyRemaining,0);
+}
+function allOnHandRows(){
+  const rows = [];
+  for(const upc in state.catalog.items){
+    const item = state.catalog.items[upc];
+    const qty = onHandQty(upc);
+    const lots = state.receiving.filter(l=>l.upc===upc && l.qtyRemaining>0);
+    const value = lots.reduce((s,l)=>s+l.qtyRemaining*l.unitCost,0);
+    const nextExp = lots.map(l=>l.expirationDate).filter(Boolean).sort()[0] || null;
+    rows.push({upc, ...item, qty, value, nextExp});
+  }
+  return rows.sort((a,b)=> a.name.localeCompare(b.name));
+}
+function expiringLots(thresholdDays){
+  return state.receiving
+    .filter(l=>l.qtyRemaining>0 && l.expirationDate)
+    .map(l=>({...l, days: daysUntil(l.expirationDate), name:(state.catalog.items[l.upc]||{}).name || l.upc}))
+    .filter(l=> l.days !== null && l.days <= thresholdDays)
+    .sort((a,b)=>a.days-b.days);
+}
+function departmentValueRows(){
+  const map = {};
+  for(const d of state.catalog.departments) map[d] = {department:d, qty:0, value:0, skus:0};
+  for(const upc in state.catalog.items){
+    const item = state.catalog.items[upc];
+    const dept = item.department || 'Unassigned';
+    if(!map[dept]) map[dept] = {department:dept, qty:0, value:0, skus:0};
+    const qty = onHandQty(upc);
+    const lots = state.receiving.filter(l=>l.upc===upc);
+    const value = lots.reduce((s,l)=>s+l.qtyRemaining*l.unitCost,0);
+    map[dept].qty += qty;
+    map[dept].value += value;
+    if(qty>0 || lots.length>0) map[dept].skus += 1;
+  }
+  return Object.values(map).sort((a,b)=>b.value-a.value);
+}
+function totalInventoryValue(){
+  return state.receiving.reduce((s,l)=>s+l.qtyRemaining*l.unitCost,0);
+}
+
+/* ---------------- Rendering shell ---------------- */
+const TABS = [
+  {id:'dashboard', label:'Dashboard'},
+  {id:'receive', label:'Receive Items'},
+  {id:'sales', label:'Record Sales'},
+  {id:'onhand', label:'On Hand'},
+  {id:'departments', label:'Value by Dept'},
+  {id:'expiring', label:'Expiring Soon'},
+  {id:'export', label:'Export'},
+  {id:'setup', label:'Setup'},
+];
+
+function renderTabs(){
+  const nav = document.getElementById('tabs');
+  nav.innerHTML = '';
+  TABS.forEach(t=>{
+    const b = document.createElement('button');
+    b.textContent = t.label;
+    if(t.id===activeTab) b.className='active';
+    b.onclick = ()=>{ activeTab = t.id; render(); };
+    nav.appendChild(b);
+  });
+}
+
+function tickClock(){
+  document.getElementById('header-clock').textContent = new Date().toLocaleString('en-US',{weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
+}
+setInterval(tickClock, 30000);
+
+function render(){
+  renderTabs();
+  tickClock();
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  if(activeTab==='dashboard') renderDashboard(main);
+  else if(activeTab==='receive') renderReceive(main);
+  else if(activeTab==='sales') renderSales(main);
+  else if(activeTab==='onhand') renderOnHand(main);
+  else if(activeTab==='departments') renderDepartments(main);
+  else if(activeTab==='expiring') renderExpiring(main);
+  else if(activeTab==='export') renderExport(main);
+  else if(activeTab==='setup') renderSetup(main);
+}
+
+/* ---------------- Dashboard ---------------- */
+function renderDashboard(main){
+  const itemCount = Object.keys(state.catalog.items).length;
+  const totalValue = totalInventoryValue();
+  const expiringSoon = expiringLots(7);
+  const noStock = allOnHandRows().filter(r=>r.qty<=0).length;
+
+  main.innerHTML = `
+    <h2 class="page-title">Dashboard</h2>
+    <p class="page-desc">A snapshot of what's in the store right now.</p>
+    <div class="grid cols-4" style="margin-bottom:22px;">
+      <div class="card stat"><div class="label">SKUs Tracked</div><div class="value">${itemCount}</div></div>
+      <div class="card stat"><div class="label">Inventory Value</div><div class="value">${fmtMoney(totalValue)}</div></div>
+      <div class="card stat"><div class="label">Expiring ≤ 7 days</div><div class="value ${expiringSoon.length?'warn':''}">${expiringSoon.length}</div></div>
+      <div class="card stat"><div class="label">Out of Stock SKUs</div><div class="value ${noStock?'alert':''}">${noStock}</div></div>
+    </div>
+    <div class="grid cols-2">
+      <div class="panel" style="margin-bottom:0;">
+        <h3>Expiring soonest <span class="count">${expiringSoon.length}</span></h3>
+        ${expiringSoon.length ? renderExpiringMiniTable(expiringSoon.slice(0,6)) : '<div class="empty">Nothing expiring in the next 7 days.</div>'}
+      </div>
+      <div class="panel" style="margin-bottom:0;">
+        <h3>Value by department <span class="count">${state.catalog.departments.length}</span></h3>
+        ${renderDeptMiniTable(departmentValueRows().filter(d=>d.value>0).slice(0,6))}
+      </div>
+    </div>
+  `;
+}
+function renderExpiringMiniTable(rows){
+  if(!rows.length) return '<div class="empty">None.</div>';
+  return `<table><thead><tr><th>Item</th><th class="mono">UPC</th><th class="num">Qty</th><th class="num">Days</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td>${escapeHtml(r.name)}</td><td class="mono">${r.upc}</td><td class="num">${r.qtyRemaining}</td><td class="num">${badgeForDays(r.days)}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+function renderDeptMiniTable(rows){
+  if(!rows.length) return '<div class="empty">No inventory value yet — receive some items.</div>';
+  return `<table><thead><tr><th>Department</th><th class="num">On Hand</th><th class="num">Value</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td><span class="badge dept">${escapeHtml(r.department)}</span></td><td class="num">${r.qty}</td><td class="num">${fmtMoney(r.value)}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+function badgeForDays(d){
+  if(d<0) return `<span class="badge danger">Expired ${Math.abs(d)}d ago</span>`;
+  if(d===0) return `<span class="badge danger">Today</span>`;
+  if(d<=3) return `<span class="badge danger">${d}d</span>`;
+  if(d<=7) return `<span class="badge warn">${d}d</span>`;
+  return `<span class="badge ok">${d}d</span>`;
+}
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------------- Receive Items ---------------- */
+function renderReceive(main){
+  main.innerHTML = `
+    <h2 class="page-title">Receive Items</h2>
+    <p class="page-desc">Scan the UPC (a USB/Bluetooth barcode scanner types the code and hits Enter automatically), or type it in. New UPCs prompt you to set up the item once.</p>
+    <div class="panel">
+      <h3>New delivery</h3>
+      <form class="row-form" id="receive-form">
+        <div class="field scan grow">
+          <label>UPC (scan or type)</label>
+          <input class="mono" id="r-upc" autocomplete="off" placeholder="Scan barcode…" autofocus>
+        </div>
+        <div class="field"><label>Quantity received</label><input class="mono" id="r-qty" type="number" min="0" step="1" value="1"></div>
+        <div class="field"><label>Unit cost</label><input class="mono" id="r-cost" type="number" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Department</label>
+          <select id="r-dept">${state.catalog.departments.map(d=>`<option>${escapeHtml(d)}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label>Unit type</label>
+          <select id="r-unit">${UNIT_TYPES.map(u=>`<option>${u}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label>Vendor</label>
+          <select id="r-vendor"><option value="">Select…</option>${state.catalog.vendors.map(v=>`<option>${escapeHtml(v)}</option>`).join('')}<option value="__new__">+ Add new vendor</option></select>
+        </div>
+        <div class="field"><label>Date received</label><input type="date" id="r-date" value="${todayStr()}"></div>
+        <div class="field"><label>Expiration date</label><input type="date" id="r-expiry"></div>
+        <button class="btn primary" type="submit">Add to inventory</button>
+      </form>
+      <div id="new-item-fields" style="display:none; margin-top:14px; padding-top:14px; border-top:1px dashed var(--line);">
+        <div class="hint" style="margin-bottom:10px;"><b>New UPC</b> — set this item up once. It'll be remembered next time you scan it.</div>
+        <div class="row-form">
+          <div class="field grow"><label>Item name</label><input id="n-name" placeholder="e.g. Fuji Apples 3lb bag"></div>
+          <div class="field"><label>Storage location</label><input id="n-loc" placeholder="Fill in later if unknown"></div>
+        </div>
+      </div>
+      <div id="known-item-info" class="hint" style="display:none;"></div>
+      <div class="hint">Received quantity always adds a new lot with its own cost and expiration date, so items already in stock aren't mixed up with this delivery.</div>
+    </div>
+    <div class="panel">
+      <h3>Recent receiving <span class="count">${state.receiving.length}</span></h3>
+      ${renderReceivingTable()}
+    </div>
+  `;
+
+  const upcInput = document.getElementById('r-upc');
+  upcInput.addEventListener('input', ()=>{
+    const upc = upcInput.value.trim();
+    const known = state.catalog.items[upc];
+    const newFields = document.getElementById('new-item-fields');
+    const info = document.getElementById('known-item-info');
+    if(upc && !known){
+      newFields.style.display='block';
+      info.style.display='none';
+    } else if(known){
+      newFields.style.display='none';
+      info.style.display='block';
+      info.innerHTML = `<b>${escapeHtml(known.name)}</b> — location: ${escapeHtml(known.location) || 'not set'}`;
+      document.getElementById('r-dept').value = known.department || state.catalog.departments[0];
+      document.getElementById('r-unit').value = known.unitType || 'units';
+    } else {
+      newFields.style.display='none';
+      info.style.display='none';
+    }
+  });
+  document.getElementById('r-vendor').addEventListener('change', async (e)=>{
+    if(e.target.value==='__new__'){
+      const name = prompt('New vendor name:');
+      if(name && name.trim()){
+        state.catalog.vendors.push(name.trim());
+        await saveCatalog();
+        render();
+        setTimeout(()=>{ document.getElementById('r-vendor').value = name.trim(); },0);
+      } else {
+        e.target.value = '';
+      }
+    }
+  });
+
+  document.getElementById('receive-form').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const upc = document.getElementById('r-upc').value.trim();
+    const qty = parseFloat(document.getElementById('r-qty').value);
+    const cost = parseFloat(document.getElementById('r-cost').value) || 0;
+    const dept = document.getElementById('r-dept').value;
+    const unitType = document.getElementById('r-unit').value;
+    const vendor = document.getElementById('r-vendor').value;
+    const date = document.getElementById('r-date').value || todayStr();
+    const expiry = document.getElementById('r-expiry').value || null;
+
+    if(!upc){ showToast('Scan or enter a UPC first'); return; }
+    if(!qty || qty<=0){ showToast('Enter a quantity greater than 0'); return; }
+
+    if(!state.catalog.items[upc]){
+      const name = document.getElementById('n-name').value.trim();
+      if(!name){ showToast('New item — enter a name for it'); return; }
+      const loc = document.getElementById('n-loc').value.trim();
+      state.catalog.items[upc] = { name, department: dept, unitType, location: loc || '', cost };
+      await saveCatalog();
+    } else {
+      state.catalog.items[upc].department = dept;
+      state.catalog.items[upc].unitType = unitType;
+      await saveCatalog();
+    }
+
+    state.receiving.push({
+      id: uid(), upc, qtyReceived: qty, qtyRemaining: qty, unitCost: cost,
+      dateReceived: date, expirationDate: expiry, vendor: vendor || 'Unspecified',
+      department: dept, unitType: unitType
+    });
+    await saveReceiving();
+    showToast(`Received ${qty} × ${state.catalog.items[upc].name}`);
+    render();
+    setTimeout(()=>document.getElementById('r-upc').focus(), 50);
+  });
+}
+function renderReceivingTable(){
+  const rows = [...state.receiving].sort((a,b)=>b.dateReceived.localeCompare(a.dateReceived)).slice(0,15);
+  if(!rows.length) return '<div class="empty">No deliveries logged yet.</div>';
+  return `<table><thead><tr>
+    <th>Item</th><th class="mono">UPC</th><th>Department</th><th>Vendor</th><th class="num">Qty</th><th>Unit</th><th class="num">Unit Cost</th><th>Received</th><th>Expires</th>
+  </tr></thead><tbody>
+  ${rows.map(l=>`<tr>
+    <td>${escapeHtml((state.catalog.items[l.upc]||{}).name || '—')}</td>
+    <td class="mono">${l.upc}</td>
+    <td><span class="badge dept">${escapeHtml(l.department || (state.catalog.items[l.upc]||{}).department || 'Unassigned')}</span></td>
+    <td>${escapeHtml(l.vendor)}</td>
+    <td class="num">${l.qtyReceived}</td>
+    <td>${escapeHtml(l.unitType || (state.catalog.items[l.upc]||{}).unitType || 'units')}</td>
+    <td class="num">${fmtMoney(l.unitCost)}</td>
+    <td>${fmtDate(l.dateReceived)}</td>
+    <td>${l.expirationDate ? fmtDate(l.expirationDate) : '—'}</td>
+  </tr>`).join('')}
+  </tbody></table>`;
+}
+
+/* ---------------- Record Sales ---------------- */
+function renderSales(main){
+  main.innerHTML = `
+    <h2 class="page-title">Record Sales</h2>
+    <p class="page-desc">Log what went through the register. Stock is deducted from the oldest expiration date first, so on-hand and expiration alerts stay accurate.</p>
+    <div class="panel">
+      <h3>Log a sale</h3>
+      <form class="row-form" id="sales-form">
+        <div class="field scan grow">
+          <label>UPC (scan or type)</label>
+          <input class="mono" id="s-upc" autocomplete="off" placeholder="Scan barcode…" autofocus>
+        </div>
+        <div class="field"><label>Quantity sold</label><input class="mono" id="s-qty" type="number" min="1" step="1" value="1"></div>
+        <div class="field"><label>Date</label><input type="date" id="s-date" value="${todayStr()}"></div>
+        <button class="btn primary" type="submit">Log sale</button>
+      </form>
+      <div id="s-item-info" class="hint"></div>
+    </div>
+    <div class="panel">
+      <h3>Import transactions from Excel</h3>
+      <p class="page-desc" style="margin-bottom:12px;">Drag a spreadsheet here, or click to browse. Columns needed: <b>UPC</b> and <b>Qty</b> (a <b>Date</b> column is optional — today's date is used if it's missing).</p>
+      <div class="dropzone" id="sales-dropzone">
+        <div class="dz-title">Drop .xlsx or .csv file here</div>
+        <div class="dz-sub">or click to choose a file</div>
+        <input type="file" id="sales-file-input" accept=".xlsx,.xls,.csv">
+      </div>
+      <div class="import-summary" id="import-summary"></div>
+    </div>
+    <div class="panel">
+      <h3>Recent sales <span class="count">${state.sales.length}</span></h3>
+      ${renderSalesTable()}
+    </div>
+  `;
+  const upcInput = document.getElementById('s-upc');
+  upcInput.addEventListener('input', ()=>{
+    const upc = upcInput.value.trim();
+    const info = document.getElementById('s-item-info');
+    const item = state.catalog.items[upc];
+    if(!upc){ info.innerHTML=''; return; }
+    if(!item){ info.innerHTML = `Unknown UPC — receive it first on the Receive Items tab.`; return; }
+    const onHand = onHandQty(upc);
+    info.innerHTML = `<b>${escapeHtml(item.name)}</b> — ${onHand} on hand`;
+  });
+  document.getElementById('sales-form').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const upc = document.getElementById('s-upc').value.trim();
+    const qty = parseFloat(document.getElementById('s-qty').value);
+    const date = document.getElementById('s-date').value || todayStr();
+    if(!upc || !state.catalog.items[upc]){ showToast('Unknown UPC — receive it first'); return; }
+    if(!qty || qty<=0){ showToast('Enter a quantity greater than 0'); return; }
+    const available = onHandQty(upc);
+    if(qty > available){ showToast(`Only ${available} on hand — logged anyway`); }
+
+    let remaining = qty;
+    for(const lot of activeLotsForUpc(upc)){
+      if(remaining<=0) break;
+      const take = Math.min(lot.qtyRemaining, remaining);
+      lot.qtyRemaining -= take;
+      remaining -= take;
+    }
+    state.sales.push({id:uid(), upc, qty, date});
+    await saveReceiving();
+    await saveSales();
+    showToast(`Sold ${qty} × ${state.catalog.items[upc].name}`);
+    render();
+    setTimeout(()=>document.getElementById('s-upc').focus(), 50);
+  });
+
+  const dz = document.getElementById('sales-dropzone');
+  const fileInput = document.getElementById('sales-file-input');
+  dz.addEventListener('click', ()=>fileInput.click());
+  dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('drag'); });
+  dz.addEventListener('dragleave', ()=> dz.classList.remove('drag'));
+  dz.addEventListener('drop', e=>{
+    e.preventDefault();
+    dz.classList.remove('drag');
+    if(e.dataTransfer.files && e.dataTransfer.files[0]) handleSalesFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', e=>{
+    if(e.target.files && e.target.files[0]) handleSalesFile(e.target.files[0]);
+  });
+}
+
+function handleSalesFile(file){
+  if(typeof XLSX === 'undefined'){ showToast('Excel library failed to load — check your connection'); return; }
+  const reader = new FileReader();
+  reader.onload = async (e)=>{
+    let rows;
+    try{
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+    }catch(err){
+      showSalesImportResult({error:'Could not read that file. Make sure it\'s a valid .xlsx, .xls, or .csv.'});
+      return;
+    }
+    await processSalesImport(rows);
+  };
+  reader.onerror = ()=> showSalesImportResult({error:'Could not read that file.'});
+  reader.readAsArrayBuffer(file);
+}
+
+function getField(row, names){
+  const keys = Object.keys(row);
+  for(const n of names){
+    const k = keys.find(k=>k.trim().toLowerCase()===n);
+    if(k!==undefined && row[k]!=='') return row[k];
+  }
+  return undefined;
+}
+
+async function processSalesImport(rows){
+  let ok=0, skipped=0, unknownUpcs=new Set();
+  for(const row of rows){
+    const upcRaw = getField(row, ['upc','barcode','sku']);
+    const qtyRaw = getField(row, ['qty','quantity','qty sold','quantity sold']);
+    const dateRaw = getField(row, ['date','date sold','sale date']);
+    if(upcRaw===undefined || qtyRaw===undefined){ skipped++; continue; }
+    const upc = String(upcRaw).trim();
+    const qty = parseFloat(qtyRaw);
+    if(!upc || !qty || qty<=0){ skipped++; continue; }
+    if(!state.catalog.items[upc]){ skipped++; unknownUpcs.add(upc); continue; }
+
+    let date = todayStr();
+    if(dateRaw){
+      const parsed = parseImportDate(dateRaw);
+      if(parsed) date = parsed;
+    }
+
+    let remaining = qty;
+    for(const lot of activeLotsForUpc(upc)){
+      if(remaining<=0) break;
+      const take = Math.min(lot.qtyRemaining, remaining);
+      lot.qtyRemaining -= take;
+      remaining -= take;
+    }
+    state.sales.push({id:uid(), upc, qty, date});
+    ok++;
+  }
+  if(ok>0){ await saveReceiving(); await saveSales(); }
+  showSalesImportResult({ok, skipped, unknownUpcs:[...unknownUpcs]});
+  if(ok>0) render();
+}
+
+function parseImportDate(v){
+  if(v instanceof Date && !isNaN(v)) return v.toISOString().slice(0,10);
+  if(typeof v === 'number'){ // Excel serial date
+    const d = XLSX.SSF.parse_date_code(v);
+    if(d) return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+  }
+  const s = String(v).trim();
+  const d = new Date(s);
+  if(!isNaN(d)) return d.toISOString().slice(0,10);
+  return null;
+}
+
+function showSalesImportResult({ok, skipped, unknownUpcs, error}){
+  const el = document.getElementById('import-summary');
+  if(!el) return;
+  if(error){ el.innerHTML = `<span class="bad">${escapeHtml(error)}</span>`; return; }
+  let html = `<span class="ok">${ok} sale${ok===1?'':'s'} imported.</span>`;
+  if(skipped) html += ` <span class="bad">${skipped} row${skipped===1?'':'s'} skipped.</span>`;
+  if(unknownUpcs && unknownUpcs.length) html += `<div class="hint">Unknown UPCs (not in item master, receive them first): ${unknownUpcs.slice(0,10).map(escapeHtml).join(', ')}${unknownUpcs.length>10?'…':''}</div>`;
+  el.innerHTML = html;
+}
+function renderSalesTable(){
+  const rows = [...state.sales].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,15);
+  if(!rows.length) return '<div class="empty">No sales logged yet.</div>';
+  return `<table><thead><tr><th>Item</th><th class="mono">UPC</th><th class="num">Qty Sold</th><th>Date</th></tr></thead><tbody>
+  ${rows.map(s=>`<tr><td>${escapeHtml((state.catalog.items[s.upc]||{}).name || '—')}</td><td class="mono">${s.upc}</td><td class="num">${s.qty}</td><td>${fmtDate(s.date)}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+/* ---------------- On Hand ---------------- */
+function renderOnHand(main){
+  const rows = allOnHandRows();
+  main.innerHTML = `
+    <h2 class="page-title">On Hand</h2>
+    <p class="page-desc">Current quantity and value for every item, computed as received minus sold.</p>
+    <div class="filter-bar">
+      <input id="oh-search" placeholder="Search by name or UPC…">
+      <select id="oh-dept"><option value="">All departments</option>${state.catalog.departments.map(d=>`<option>${escapeHtml(d)}</option>`).join('')}</select>
+    </div>
+    <div class="panel" id="oh-panel">
+      ${renderOnHandTable(rows)}
+    </div>
+  `;
+  function refresh(){
+    const q = document.getElementById('oh-search').value.toLowerCase();
+    const dept = document.getElementById('oh-dept').value;
+    const filtered = rows.filter(r =>
+      (!dept || r.department===dept) &&
+      (!q || r.name.toLowerCase().includes(q) || r.upc.includes(q))
+    );
+    document.getElementById('oh-panel').innerHTML = renderOnHandTable(filtered);
+  }
+  document.getElementById('oh-search').addEventListener('input', refresh);
+  document.getElementById('oh-dept').addEventListener('change', refresh);
+}
+function renderOnHandTable(rows){
+  if(!rows.length) return '<div class="empty">No items match.</div>';
+  return `<table><thead><tr>
+    <th>Item</th><th class="mono">UPC</th><th>Department</th><th>Unit</th><th>Location</th><th class="num">On Hand</th><th class="num">Value</th><th>Next Expiration</th>
+  </tr></thead><tbody>
+  ${rows.map(r=>`<tr>
+    <td>${escapeHtml(r.name)}</td>
+    <td class="mono">${r.upc}</td>
+    <td><span class="badge dept">${escapeHtml(r.department||'Unassigned')}</span></td>
+    <td>${escapeHtml(r.unitType||'units')}</td>
+    <td>${escapeHtml(r.location) || '<span style="color:var(--ink-soft)">not set</span>'}</td>
+    <td class="num">${r.qty<=0 ? '<span class="badge danger">0</span>' : r.qty}</td>
+    <td class="num">${fmtMoney(r.value)}</td>
+    <td>${r.nextExp ? fmtDate(r.nextExp) : '—'}</td>
+  </tr>`).join('')}
+  </tbody></table>`;
+}
+
+/* ---------------- Value by Department ---------------- */
+function renderDepartments(main){
+  const rows = departmentValueRows();
+  const total = rows.reduce((s,r)=>s+r.value,0);
+  main.innerHTML = `
+    <h2 class="page-title">Inventory Value by Department</h2>
+    <p class="page-desc">Cost value of everything currently on hand, grouped by department.</p>
+    <div class="panel">
+      <h3>All departments <span class="count">${fmtMoney(total)} total</span></h3>
+      <table><thead><tr><th>Department</th><th class="num">SKUs</th><th class="num">Units On Hand</th><th class="num">Inventory Value</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr><td><span class="badge dept">${escapeHtml(r.department)}</span></td><td class="num">${r.skus}</td><td class="num">${r.qty}</td><td class="num">${fmtMoney(r.value)}</td></tr>`).join('')}
+      </tbody></table>
+    </div>
+  `;
+}
+
+/* ---------------- Expiring Soon ---------------- */
+function renderExpiring(main){
+  main.innerHTML = `
+    <h2 class="page-title">Expiring Soon</h2>
+    <p class="page-desc">Lots sorted by expiration date so the oldest stock surfaces first.</p>
+    <div class="filter-bar">
+      <label style="font-size:13px;font-weight:600;">Show within:</label>
+      <select id="exp-threshold">
+        <option value="3">3 days</option>
+        <option value="7" selected>7 days</option>
+        <option value="14">14 days</option>
+        <option value="30">30 days</option>
+        <option value="9999">All (with an expiration date)</option>
+      </select>
+    </div>
+    <div class="panel" id="exp-panel"></div>
+  `;
+  function refresh(){
+    const t = parseInt(document.getElementById('exp-threshold').value,10);
+    const rows = expiringLots(t);
+    document.getElementById('exp-panel').innerHTML = rows.length ? `
+      <table><thead><tr><th>Item</th><th class="mono">UPC</th><th class="num">Qty</th><th>Expires</th><th class="num">Status</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr>
+        <td>${escapeHtml(r.name)}</td>
+        <td class="mono">${r.upc}</td>
+        <td class="num">${r.qtyRemaining}</td>
+        <td>${fmtDate(r.expirationDate)}</td>
+        <td class="num">${badgeForDays(r.days)}</td>
+      </tr>`).join('')}
+      </tbody></table>
+    ` : '<div class="empty">Nothing expiring in this window.</div>';
+  }
+  document.getElementById('exp-threshold').addEventListener('change', refresh);
+  refresh();
+}
+
+/* ---------------- Export ---------------- */
+function itemMasterExportRows(){
+  return Object.keys(state.catalog.items).map(upc=>{
+    const i = state.catalog.items[upc];
+    return { UPC: upc, Name: i.name, Department: i.department||'', Unit: i.unitType||'units', Location: i.location||'' };
+  });
+}
+function receivingExportRows(){
+  return state.receiving.map(l=>({
+    UPC: l.upc,
+    Item: (state.catalog.items[l.upc]||{}).name || '',
+    Department: l.department || (state.catalog.items[l.upc]||{}).department || '',
+    Unit: l.unitType || (state.catalog.items[l.upc]||{}).unitType || 'units',
+    Vendor: l.vendor,
+    'Qty Received': l.qtyReceived,
+    'Qty Remaining': l.qtyRemaining,
+    'Unit Cost': l.unitCost,
+    'Date Received': l.dateReceived,
+    'Expiration Date': l.expirationDate || ''
+  }));
+}
+function salesExportRows(){
+  return state.sales.map(s=>({
+    UPC: s.upc,
+    Item: (state.catalog.items[s.upc]||{}).name || '',
+    Qty: s.qty,
+    Date: s.date
+  }));
+}
+function onHandExportRows(){
+  return allOnHandRows().map(r=>({
+    UPC: r.upc, Item: r.name, Department: r.department||'', Unit: r.unitType||'units',
+    Location: r.location||'', 'On Hand': r.qty, Value: Number(r.value.toFixed(2)),
+    'Next Expiration': r.nextExp || ''
+  }));
+}
+function downloadWorkbook(sheets, filename){
+  if(typeof XLSX === 'undefined'){ showToast('Excel library failed to load — check your connection'); return; }
+  const wb = XLSX.utils.book_new();
+  sheets.forEach(({name, rows})=>{
+    const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{}]);
+    XLSX.utils.book_append_sheet(wb, ws, name.slice(0,31));
+  });
+  XLSX.writeFile(wb, filename);
+  showToast('Exported ' + filename);
+}
+function renderExport(main){
+  main.innerHTML = `
+    <h2 class="page-title">Export</h2>
+    <p class="page-desc">Download store data as Excel workbooks — pull these into a spreadsheet for reporting, backups, or sharing with your accountant.</p>
+    <div class="export-grid">
+      <div class="export-card">
+        <h4>Everything (all sheets)</h4>
+        <p>One workbook with item master, receiving log, sales log, and current on-hand — each as its own sheet.</p>
+        <button class="btn primary" id="exp-all">Export all to Excel</button>
+      </div>
+      <div class="export-card">
+        <h4>Item Master</h4>
+        <p>UPC, name, department, unit type, and shelf location for every item.</p>
+        <button class="btn ghost" id="exp-items">Export item master</button>
+      </div>
+      <div class="export-card">
+        <h4>Receiving Log</h4>
+        <p>Every delivery: vendor, quantity, unit cost, department, dates received and expiring.</p>
+        <button class="btn ghost" id="exp-receiving">Export receiving log</button>
+      </div>
+      <div class="export-card">
+        <h4>Sales Log</h4>
+        <p>Every recorded sale by UPC, quantity, and date.</p>
+        <button class="btn ghost" id="exp-sales">Export sales log</button>
+      </div>
+      <div class="export-card">
+        <h4>On Hand Summary</h4>
+        <p>Current quantity and inventory value per item, department, and location.</p>
+        <button class="btn ghost" id="exp-onhand">Export on-hand summary</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('exp-all').addEventListener('click', ()=>{
+    downloadWorkbook([
+      {name:'Item Master', rows:itemMasterExportRows()},
+      {name:'Receiving Log', rows:receivingExportRows()},
+      {name:'Sales Log', rows:salesExportRows()},
+      {name:'On Hand', rows:onHandExportRows()}
+    ], `store-inventory-${todayStr()}.xlsx`);
+  });
+  document.getElementById('exp-items').addEventListener('click', ()=>{
+    downloadWorkbook([{name:'Item Master', rows:itemMasterExportRows()}], `item-master-${todayStr()}.xlsx`);
+  });
+  document.getElementById('exp-receiving').addEventListener('click', ()=>{
+    downloadWorkbook([{name:'Receiving Log', rows:receivingExportRows()}], `receiving-log-${todayStr()}.xlsx`);
+  });
+  document.getElementById('exp-sales').addEventListener('click', ()=>{
+    downloadWorkbook([{name:'Sales Log', rows:salesExportRows()}], `sales-log-${todayStr()}.xlsx`);
+  });
+  document.getElementById('exp-onhand').addEventListener('click', ()=>{
+    downloadWorkbook([{name:'On Hand', rows:onHandExportRows()}], `on-hand-${todayStr()}.xlsx`);
+  });
+}
+
+/* ---------------- Setup ---------------- */
+function renderSetup(main){
+  main.innerHTML = `
+    <h2 class="page-title">Setup</h2>
+    <p class="page-desc">Manage departments, vendors, and item details like shelf location.</p>
+    <div class="grid cols-2">
+      <div class="panel" style="margin-bottom:0;">
+        <h3>Departments <span class="count">${state.catalog.departments.length}</span></h3>
+        <form class="row-form" id="dept-form">
+          <div class="field grow"><label>Add department</label><input id="new-dept" placeholder="e.g. Floral"></div>
+          <button class="btn primary" type="submit">Add</button>
+        </form>
+        <div class="tag-row" id="dept-tags">
+          ${state.catalog.departments.map(d=>`<span class="tag">${escapeHtml(d)}<button data-dept="${escapeHtml(d)}">&times;</button></span>`).join('')}
+        </div>
+      </div>
+      <div class="panel" style="margin-bottom:0;">
+        <h3>Vendors <span class="count">${state.catalog.vendors.length}</span></h3>
+        <form class="row-form" id="vendor-form">
+          <div class="field grow"><label>Add vendor</label><input id="new-vendor" placeholder="e.g. Sysco"></div>
+          <button class="btn primary" type="submit">Add</button>
+        </form>
+        <div class="tag-row" id="vendor-tags">
+          ${state.catalog.vendors.map(v=>`<span class="tag">${escapeHtml(v)}<button data-vendor="${escapeHtml(v)}">&times;</button></span>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Item master <span class="count">${Object.keys(state.catalog.items).length}</span></h3>
+      <div class="hint" style="margin-bottom:12px;">Edit name, department, or shelf location for any item. Changes apply immediately.</div>
+      ${renderItemMasterTable()}
+    </div>
+  `;
+
+  document.getElementById('dept-form').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const val = document.getElementById('new-dept').value.trim();
+    if(val && !state.catalog.departments.includes(val)){
+      state.catalog.departments.push(val);
+      await saveCatalog();
+      render();
+    }
+  });
+  document.getElementById('vendor-form').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const val = document.getElementById('new-vendor').value.trim();
+    if(val && !state.catalog.vendors.includes(val)){
+      state.catalog.vendors.push(val);
+      await saveCatalog();
+      render();
+    }
+  });
+  document.getElementById('dept-tags').addEventListener('click', async e=>{
+    const d = e.target.getAttribute('data-dept');
+    if(d){
+      state.catalog.departments = state.catalog.departments.filter(x=>x!==d);
+      await saveCatalog();
+      render();
+    }
+  });
+  document.getElementById('vendor-tags').addEventListener('click', async e=>{
+    const v = e.target.getAttribute('data-vendor');
+    if(v){
+      state.catalog.vendors = state.catalog.vendors.filter(x=>x!==v);
+      await saveCatalog();
+      render();
+    }
+  });
+  document.querySelectorAll('.item-edit').forEach(row=>{
+    row.addEventListener('change', async e=>{
+      const upc = row.getAttribute('data-upc');
+      const field = e.target.getAttribute('data-field');
+      state.catalog.items[upc][field] = e.target.value;
+      await saveCatalog();
+      showToast('Saved');
+    });
+  });
+}
+function renderItemMasterTable(){
+  const upcs = Object.keys(state.catalog.items);
+  if(!upcs.length) return '<div class="empty">No items yet — items are created automatically the first time you receive them.</div>';
+  return `<table><thead><tr><th class="mono">UPC</th><th>Name</th><th>Department</th><th>Unit</th><th>Location</th></tr></thead><tbody>
+  ${upcs.map(upc=>{
+    const item = state.catalog.items[upc];
+    return `<tr class="item-edit" data-upc="${upc}">
+      <td class="mono">${upc}</td>
+      <td><input data-field="name" value="${escapeHtml(item.name)}" style="border:1px solid var(--line);border-radius:5px;padding:5px 7px;font-size:13px;width:100%;"></td>
+      <td><select data-field="department" style="border:1px solid var(--line);border-radius:5px;padding:5px 7px;font-size:13px;">
+        ${state.catalog.departments.map(d=>`<option ${d===item.department?'selected':''}>${escapeHtml(d)}</option>`).join('')}
+      </select></td>
+      <td><select data-field="unitType" style="border:1px solid var(--line);border-radius:5px;padding:5px 7px;font-size:13px;">
+        ${UNIT_TYPES.map(u=>`<option ${u===(item.unitType||'units')?'selected':''}>${u}</option>`).join('')}
+      </select></td>
+      <td><input data-field="location" value="${escapeHtml(item.location||'')}" placeholder="e.g. Aisle 4, Shelf B" style="border:1px solid var(--line);border-radius:5px;padding:5px 7px;font-size:13px;width:100%;"></td>
+    </tr>`;
+  }).join('')}
+  </tbody></table>`;
+}
+
+/* ---------------- Boot ---------------- */
+(async function init(){
+  await loadAll();
+  render();
+})();
+</script>
+</body>
+</html>
